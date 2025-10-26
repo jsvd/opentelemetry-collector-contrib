@@ -78,9 +78,11 @@ func accessSample[K Context]() ottl.StandardGetSetter[K] {
 			return tCtx.GetProfile().Sample(), nil
 		},
 		Setter: func(_ context.Context, tCtx K, val any) error {
-			if v, ok := val.(pprofile.SampleSlice); ok {
-				v.CopyTo(tCtx.GetProfile().Sample())
+			v, err := ctxutil.ExpectType[pprofile.SampleSlice](val)
+			if err != nil {
+				return err
 			}
+			v.CopyTo(tCtx.GetProfile().Sample())
 			return nil
 		},
 	}
@@ -92,9 +94,11 @@ func accessTimeUnixNano[K Context]() ottl.StandardGetSetter[K] {
 			return tCtx.GetProfile().Time().AsTime().UnixNano(), nil
 		},
 		Setter: func(_ context.Context, tCtx K, val any) error {
-			if i, ok := val.(int64); ok {
-				tCtx.GetProfile().SetTime(pcommon.NewTimestampFromTime(time.Unix(0, i)))
+			i, err := ctxutil.ExpectType[int64](val)
+			if err != nil {
+				return err
 			}
+			tCtx.GetProfile().SetTime(pcommon.NewTimestampFromTime(time.Unix(0, i)))
 			return nil
 		},
 	}
@@ -106,9 +110,11 @@ func accessTime[K Context]() ottl.StandardGetSetter[K] {
 			return tCtx.GetProfile().Time().AsTime(), nil
 		},
 		Setter: func(_ context.Context, tCtx K, val any) error {
-			if i, ok := val.(time.Time); ok {
-				tCtx.GetProfile().SetTime(pcommon.NewTimestampFromTime(i))
+			i, err := ctxutil.ExpectType[time.Time](val)
+			if err != nil {
+				return err
 			}
+			tCtx.GetProfile().SetTime(pcommon.NewTimestampFromTime(i))
 			return nil
 		},
 	}
@@ -120,9 +126,11 @@ func accessDurationUnixNano[K Context]() ottl.StandardGetSetter[K] {
 			return tCtx.GetProfile().Duration().AsTime().UnixNano(), nil
 		},
 		Setter: func(_ context.Context, tCtx K, val any) error {
-			if t, ok := val.(int64); ok {
-				tCtx.GetProfile().SetDuration(pcommon.NewTimestampFromTime(time.Unix(0, t)))
+			t, err := ctxutil.ExpectType[int64](val)
+			if err != nil {
+				return err
 			}
+			tCtx.GetProfile().SetDuration(pcommon.NewTimestampFromTime(time.Unix(0, t)))
 			return nil
 		},
 	}
@@ -134,9 +142,11 @@ func accessDuration[K Context]() ottl.StandardGetSetter[K] {
 			return tCtx.GetProfile().Duration().AsTime(), nil
 		},
 		Setter: func(_ context.Context, tCtx K, val any) error {
-			if t, ok := val.(time.Time); ok {
-				tCtx.GetProfile().SetDuration(pcommon.NewTimestampFromTime(t))
+			t, err := ctxutil.ExpectType[time.Time](val)
+			if err != nil {
+				return err
 			}
+			tCtx.GetProfile().SetDuration(pcommon.NewTimestampFromTime(t))
 			return nil
 		},
 	}
@@ -148,9 +158,11 @@ func accessPeriodType[K Context]() ottl.StandardGetSetter[K] {
 			return tCtx.GetProfile().PeriodType(), nil
 		},
 		Setter: func(_ context.Context, tCtx K, val any) error {
-			if v, ok := val.(pprofile.ValueType); ok {
-				v.CopyTo(tCtx.GetProfile().PeriodType())
+			v, err := ctxutil.ExpectType[pprofile.ValueType](val)
+			if err != nil {
+				return err
 			}
+			v.CopyTo(tCtx.GetProfile().PeriodType())
 			return nil
 		},
 	}
@@ -162,9 +174,11 @@ func accessPeriod[K Context]() ottl.StandardGetSetter[K] {
 			return tCtx.GetProfile().Period(), nil
 		},
 		Setter: func(_ context.Context, tCtx K, val any) error {
-			if i, ok := val.(int64); ok {
-				tCtx.GetProfile().SetPeriod(i)
+			i, err := ctxutil.ExpectType[int64](val)
+			if err != nil {
+				return err
 			}
+			tCtx.GetProfile().SetPeriod(i)
 			return nil
 		},
 	}
@@ -187,9 +201,11 @@ func accessSampleType[K Context]() ottl.StandardGetSetter[K] {
 			return tCtx.GetProfile().SampleType(), nil
 		},
 		Setter: func(_ context.Context, tCtx K, val any) error {
-			if v, ok := val.(pprofile.ValueType); ok {
-				v.CopyTo(tCtx.GetProfile().SampleType())
+			v, err := ctxutil.ExpectType[pprofile.ValueType](val)
+			if err != nil {
+				return err
 			}
+			v.CopyTo(tCtx.GetProfile().SampleType())
 			return nil
 		},
 	}
@@ -201,12 +217,14 @@ func accessProfileID[K Context]() ottl.StandardGetSetter[K] {
 			return tCtx.GetProfile().ProfileID(), nil
 		},
 		Setter: func(_ context.Context, tCtx K, val any) error {
-			if id, ok := val.(pprofile.ProfileID); ok {
-				if id.IsEmpty() {
-					return errors.New("profile ids must not be empty")
-				}
-				tCtx.GetProfile().SetProfileID(id)
+			id, err := ctxutil.ExpectType[pprofile.ProfileID](val)
+			if err != nil {
+				return err
 			}
+			if id.IsEmpty() {
+				return errors.New("profile ids must not be empty")
+			}
+			tCtx.GetProfile().SetProfileID(id)
 			return nil
 		},
 	}
@@ -219,16 +237,18 @@ func accessStringProfileID[K Context]() ottl.StandardGetSetter[K] {
 			return hex.EncodeToString(id[:]), nil
 		},
 		Setter: func(_ context.Context, tCtx K, val any) error {
-			if s, ok := val.(string); ok {
-				id, err := ctxcommon.ParseProfileID(s)
-				if err != nil {
-					return err
-				}
-				if id.IsEmpty() {
-					return errors.New("profile ids must not be empty")
-				}
-				tCtx.GetProfile().SetProfileID(id)
+			s, err := ctxutil.ExpectType[string](val)
+			if err != nil {
+				return err
 			}
+			id, err := ctxcommon.ParseProfileID(s)
+			if err != nil {
+				return err
+			}
+			if id.IsEmpty() {
+				return errors.New("profile ids must not be empty")
+			}
+			tCtx.GetProfile().SetProfileID(id)
 			return nil
 		},
 	}
@@ -251,9 +271,11 @@ func accessDroppedAttributesCount[K Context]() ottl.StandardGetSetter[K] {
 			return int64(tCtx.GetProfile().DroppedAttributesCount()), nil
 		},
 		Setter: func(_ context.Context, tCtx K, val any) error {
-			if i, ok := val.(int64); ok {
-				tCtx.GetProfile().SetDroppedAttributesCount(uint32(i))
+			i, err := ctxutil.ExpectType[int64](val)
+			if err != nil {
+				return err
 			}
+			tCtx.GetProfile().SetDroppedAttributesCount(uint32(i))
 			return nil
 		},
 	}
@@ -265,9 +287,11 @@ func accessOriginalPayloadFormat[K Context]() ottl.StandardGetSetter[K] {
 			return tCtx.GetProfile().OriginalPayloadFormat(), nil
 		},
 		Setter: func(_ context.Context, tCtx K, val any) error {
-			if v, ok := val.(string); ok {
-				tCtx.GetProfile().SetOriginalPayloadFormat(v)
+			v, err := ctxutil.ExpectType[string](val)
+			if err != nil {
+				return err
 			}
+			tCtx.GetProfile().SetOriginalPayloadFormat(v)
 			return nil
 		},
 	}
@@ -279,9 +303,11 @@ func accessOriginalPayload[K Context]() ottl.StandardGetSetter[K] {
 			return tCtx.GetProfile().OriginalPayload().AsRaw(), nil
 		},
 		Setter: func(_ context.Context, tCtx K, val any) error {
-			if v, ok := val.([]byte); ok {
-				tCtx.GetProfile().OriginalPayload().FromRaw(v)
+			v, err := ctxutil.ExpectType[[]byte](val)
+			if err != nil {
+				return err
 			}
+			tCtx.GetProfile().OriginalPayload().FromRaw(v)
 			return nil
 		},
 	}
