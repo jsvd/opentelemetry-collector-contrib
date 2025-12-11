@@ -33,7 +33,7 @@ processors:
 
 | Field | Description | Default |
 | ----- | ----------- | ------- |
-| `source.type` | The source type identifier (`noop`, `yaml`) | `noop` |
+| `source.type` | The source type identifier (`noop`, `yaml`, `dns`) | `noop` |
 | `attributes` | List of attribute enrichment rules (required) | - |
 
 ### Attribute Configuration
@@ -61,46 +61,45 @@ Each entry in `attributes` defines a lookup rule:
 
 ## Built-in Sources
 
-### noop
+- [noop](internal/source/noop/README.md) - No-operation source for testing
+- [yaml](internal/source/yaml/README.md) - Key-value mappings from YAML files
+- [dns](internal/source/dns/README.md) - DNS lookups with caching
 
-A no-operation source that always returns "not found". Useful for testing.
+## Caching
 
-```yaml
-processors:
-  lookup:
-    source:
-      type: noop
-    attributes:
-      - key: result
-        from_attribute: key
-        default: "not-found"
-```
+Sources that support external lookups (like DNS) can use the built-in caching system to reduce latency and external queries.
 
-### yaml
-
-Loads key-value mappings from a YAML file. The file should contain a flat map of string keys to values.
+### Cache Configuration
 
 | Field | Description | Default |
 | ----- | ----------- | ------- |
-| `path` | Path to the YAML file (required) | - |
+| `cache.enabled` | Enable caching | varies by source |
+| `cache.size` | Maximum number of entries (LRU eviction) | `1000` |
+| `cache.ttl` | Time-to-live for successful lookups | `0` (no expiration) |
+| `cache.negative_ttl` | TTL for "not found" results | `0` (disabled) |
 
-```yaml
-processors:
-  lookup:
-    source:
-      type: yaml
-      path: /etc/otel/mappings.yaml
-    attributes:
-      - key: service.display_name
-        from_attribute: service.name
-```
+### Using Cache in Custom Sources
 
-Example mappings file (`mappings.yaml`):
+Custom sources can use the cache by wrapping their lookup function:
 
-```yaml
-svc-frontend: "Frontend Web App"
-svc-backend: "Backend API Service"
-svc-worker: "Background Worker"
+```go
+func createSource(ctx context.Context, settings lookupsource.CreateSettings, cfg lookupsource.SourceConfig) (lookupsource.Source, error) {
+    myCfg := cfg.(*Config)
+
+    // Create base lookup function
+    lookupFn := func(ctx context.Context, key string) (any, bool, error) {
+        // Perform actual lookup
+        return result, true, nil
+    }
+
+    // Wrap with cache if enabled
+    if myCfg.Cache.Enabled {
+        cache := lookupsource.NewCache(myCfg.Cache)
+        lookupFn = lookupsource.WrapWithCache(cache, lookupFn)
+    }
+
+    return lookupsource.NewSource(lookupFn, ...), nil
+}
 ```
 
 ## Benchmarks
@@ -123,16 +122,7 @@ Measures the full processing pipeline including pdata operations, attribute iter
 | 100 logs, 3 attributes | 21,604 | 54,113 | 1,014 |
 | 1000 logs, 1 attribute | 122,447 | 280,617 | 6,014 |
 
-### YAML Source Performance
-
-Measures only the source lookup operation (map access), isolated from processor overhead:
-
-| Map Size | ns/op | allocs/op |
-|----------|-------|-----------|
-| 10 entries | 1,418 | 0 |
-| 100 entries | 1,355 | 0 |
-| 1,000 entries | 1,317 | 0 |
-| 10,000 entries | 1,319 | 0 |
+Source-specific benchmarks are available in each source's README.
 
 ## Custom Sources
 

@@ -14,6 +14,7 @@ import (
 	"go.opentelemetry.io/collector/processor/processorhelper"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/lookupprocessor/internal/metadata"
+	dnssource "github.com/open-telemetry/opentelemetry-collector-contrib/processor/lookupprocessor/internal/source/dns"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/lookupprocessor/internal/source/noop"
 	yamlsource "github.com/open-telemetry/opentelemetry-collector-contrib/processor/lookupprocessor/internal/source/yaml"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/lookupprocessor/lookupsource"
@@ -55,6 +56,7 @@ func defaultSources() map[string]lookupsource.SourceFactory {
 	return map[string]lookupsource.SourceFactory{
 		"noop": noop.NewFactory(),
 		"yaml": yamlsource.NewFactory(),
+		"dns":  dnssource.NewFactory(),
 	}
 }
 

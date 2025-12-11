@@ -72,6 +72,7 @@ func (p *lookupProcessor) processLogs(ctx context.Context, ld plog.Logs) (plog.L
 	return ld, nil
 }
 
+// processAttribute performs a lookup and sets the result attribute.
 func (p *lookupProcessor) processAttribute(ctx context.Context, attrs pcommon.Map, cfg AttributeConfig) {
 	sourceVal, exists := attrs.Get(cfg.FromAttribute)
 	if !exists {
