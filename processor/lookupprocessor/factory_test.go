@@ -185,20 +185,6 @@ func TestConfigValidation(t *testing.T) {
 			wantErr: "from_attribute is required",
 		},
 		{
-			name: "invalid action",
-			cfg: &Config{
-				Attributes: []AttributeConfig{{Key: "test", FromAttribute: "src", Action: "invalid"}},
-			},
-			wantErr: "invalid action",
-		},
-		{
-			name: "invalid context",
-			cfg: &Config{
-				Attributes: []AttributeConfig{{Key: "test", FromAttribute: "src", Context: "invalid"}},
-			},
-			wantErr: "invalid context",
-		},
-		{
 			name: "valid config",
 			cfg: &Config{
 				Source: SourceConfig{Type: "noop"},
@@ -239,3 +225,64 @@ func TestConfigValidation(t *testing.T) {
 	}
 }
 
+func TestActionUnmarshalText(t *testing.T) {
+	tests := []struct {
+		input   string
+		want    Action
+		wantErr bool
+	}{
+		{"insert", ActionInsert, false},
+		{"INSERT", ActionInsert, false},
+		{"Insert", ActionInsert, false},
+		{"update", ActionUpdate, false},
+		{"UPDATE", ActionUpdate, false},
+		{"upsert", ActionUpsert, false},
+		{"UPSERT", ActionUpsert, false},
+		{"invalid", "", true},
+		{"", "", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			var a Action
+			err := a.UnmarshalText([]byte(tt.input))
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "invalid action")
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.want, a)
+			}
+		})
+	}
+}
+
+func TestContextIDUnmarshalText(t *testing.T) {
+	tests := []struct {
+		input   string
+		want    ContextID
+		wantErr bool
+	}{
+		{"record", ContextRecord, false},
+		{"RECORD", ContextRecord, false},
+		{"Record", ContextRecord, false},
+		{"resource", ContextResource, false},
+		{"RESOURCE", ContextResource, false},
+		{"invalid", "", true},
+		{"", "", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			var c ContextID
+			err := c.UnmarshalText([]byte(tt.input))
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "invalid context")
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.want, c)
+			}
+		})
+	}
+}

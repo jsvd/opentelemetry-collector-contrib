@@ -22,6 +22,17 @@ const (
 	ActionUpsert Action = "upsert"
 )
 
+func (a *Action) UnmarshalText(text []byte) error {
+	str := Action(strings.ToLower(string(text)))
+	switch str {
+	case ActionInsert, ActionUpdate, ActionUpsert:
+		*a = str
+		return nil
+	default:
+		return fmt.Errorf("invalid action %q, must be one of: insert, update, upsert", str)
+	}
+}
+
 // ContextID specifies where to apply the lookup.
 // Matches the semantic used by geoipprocessor.
 type ContextID string
@@ -103,18 +114,6 @@ func (cfg *Config) Validate() error {
 		}
 		if attr.FromAttribute == "" {
 			return fmt.Errorf("attributes[%d]: from_attribute is required", i)
-		}
-
-		switch attr.Action {
-		case "", ActionInsert, ActionUpdate, ActionUpsert:
-		default:
-			return fmt.Errorf("attributes[%d]: invalid action %q, must be one of: insert, update, upsert", i, attr.Action)
-		}
-
-		switch attr.Context {
-		case "", ContextRecord, ContextResource:
-		default:
-			return fmt.Errorf("attributes[%d]: invalid context %q, must be one of: record, resource", i, attr.Context)
 		}
 	}
 
