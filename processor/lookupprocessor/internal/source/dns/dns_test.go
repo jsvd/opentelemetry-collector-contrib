@@ -4,6 +4,7 @@
 package dns
 
 import (
+	"runtime"
 	"testing"
 	"time"
 
@@ -180,6 +181,12 @@ func TestLookupWithCache(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+	// Windows timer resolution (~15ms) is too coarse for timing-based
+	// cache assertions. Both lookups can measure as 0s when the OS DNS
+	// resolver cache makes even the first lookup sub-millisecond.
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping cache timing test on Windows due to low timer resolution")
+	}
 
 	factory := NewFactory()
 	cfg := &Config{
@@ -214,7 +221,7 @@ func TestLookupWithCache(t *testing.T) {
 	assert.True(t, found2)
 	assert.Equal(t, val1, val2)
 
-	// Cache hit should be significantly faster
+	// Cache hit should be significantly faster than a network lookup
 	t.Logf("First lookup: %v, Second lookup (cached): %v", firstDuration, secondDuration)
 	assert.Less(t, secondDuration, firstDuration)
 }
